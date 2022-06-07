@@ -32,3 +32,16 @@ func TestSomeOf(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestStart(t *testing.T) {
+	input := "<start>;hello world;"
+	expected := "^hello world"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
+func TestEnd(t *testing.T) {
+	input := "world;<end>;"
+	expected := "world$"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}

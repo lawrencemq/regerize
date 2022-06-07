@@ -9,10 +9,14 @@ var constantDict = map[string]string{
 	"<space>":     "\\s",
 	"<alpha>":     "[a-zA-Z]",
 	"<alphanum>":  "\\w",
+	"<word>":      "\\w",
 	"<num>":       "\\d",
 	"<!alpha>":    "",
 	"<!num>":      "",
 	"<!alphanum>": "",
+	"<!word>":     "",
+	"<start>":     "^",
+	"<end>":       "$",
 }
 
 var ofCommand, _ = regexp.Compile("\\d+\\s+of[\\w\\\"\\s]+")
