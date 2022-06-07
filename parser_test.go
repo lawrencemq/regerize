@@ -66,3 +66,10 @@ func TestAtLeast(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestAtMost(t *testing.T) {
+	input := "at most 5 of \"ducks\""
+	expected := "(ducks){,5}"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
