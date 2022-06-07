@@ -19,7 +19,9 @@ var constantDict = map[string]string{
 	"<end>":       "$",
 }
 
-var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of(?P<request>[\w\"\s<>]+)`)
+var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var rangeCommand, _ = regexp.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var atLeastCommand, _ = regexp.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var someOfCommand, _ = regexp.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var anyOfCommand, _ = regexp.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var maybeCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
@@ -65,10 +67,19 @@ func parse(data string) string {
 
 	for _, piece := range pieces {
 		piece = strings.TrimSpace(piece)
-		if resultMap, ok := doesMatchRegex(amountOfCommand, piece); ok {
+		if resultMap, ok := doesMatchRegex(rangeCommand, piece); ok {
+			start := resultMap["amountStart"]
+			end := resultMap["amountEnd"]
+			what := getWhat(resultMap["request"])
+			regOut += "(" + what + ")" + "{" + start + "," + end + "}"
+		} else if resultMap, ok := doesMatchRegex(atLeastCommand, piece); ok {
 			num := resultMap["amount"]
 			what := getWhat(resultMap["request"])
-			regOut += what + "{" + num + "}"
+			regOut += "(" + what + ")" + "{" + num + ",}"
+		} else if resultMap, ok := doesMatchRegex(amountOfCommand, piece); ok {
+			num := resultMap["amount"]
+			what := getWhat(resultMap["request"])
+			regOut += "(" + what + ")" + "{" + num + "}"
 		} else if resultMap, ok := doesMatchRegex(someOfCommand, piece); ok {
 			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "+"

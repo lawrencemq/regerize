@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func ensureEquals(t *testing.T, expected, result string) {
 	if expected != result {
@@ -8,7 +10,7 @@ func ensureEquals(t *testing.T, expected, result string) {
 	}
 }
 func TestBatman(t *testing.T) {
-	expected := "na{16}\\sbatman"
+	expected := "(na){16}\\sbatman"
 	input := `16 of "na";
 <space>;
 batman;`
@@ -47,6 +49,20 @@ func TestMaybe(t *testing.T) {
 func TestAny(t *testing.T) {
 	input := "any of <alpha>;"
 	expected := "[a-zA-Z]*"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
+
+func TestRange(t *testing.T) {
+	input := "5 to 9 of \"hello\""
+	expected := "(hello){5,9}"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
+
+func TestAtLeast(t *testing.T) {
+	input := "at least 5 of \"ducks\""
+	expected := "(ducks){5,}"
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
