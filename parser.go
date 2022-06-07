@@ -19,8 +19,9 @@ var constantDict = map[string]string{
 	"<end>":       "$",
 }
 
-var ofCommand, _ = regexp.Compile("\\d+\\s+of[\\w\\\"\\s]+")
-var someOfCommand, _ = regexp.Compile("some\\s+of[\\w\\\"\\s]+")
+var ofCommand, _ = regexp.Compile("\\d+\\s+of[\\w\\\"\\s<>]+")
+var someOfCommand, _ = regexp.Compile("some\\s+of[\\w\\\"\\s<>]+")
+var maybeCommand, _ = regexp.Compile("maybe\\s+[\\w\\\"\\s<>]+")
 
 func sum(a, b int) int {
 	return a + b
@@ -59,6 +60,9 @@ func parse(data string) string {
 		} else if someOfCommand.MatchString(piece) {
 			what := getWhat(piece)
 			regOut += normalize(what) + "+"
+		} else if maybeCommand.MatchString(piece) {
+			what := getWhat(piece)
+			regOut += normalize(what) + "?"
 		} else if canNormalize(piece) {
 			regOut += normalize(piece)
 		} else {

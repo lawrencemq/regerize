@@ -45,3 +45,10 @@ func TestEnd(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestMaybe(t *testing.T) {
+	input := "maybe <space>;"
+	expected := "\\s?"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
