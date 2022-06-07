@@ -52,3 +52,10 @@ func TestMaybe(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestAny(t *testing.T) {
+	input := "any <alpha>;"
+	expected := "[a-zA-Z]*"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
