@@ -19,17 +19,28 @@ var constantDict = map[string]string{
 	"<end>":       "$",
 }
 
-var ofCommand, _ = regexp.Compile("\\d+\\s+of[\\w\\\"\\s<>]+")
-var someOfCommand, _ = regexp.Compile("some\\s+of[\\w\\\"\\s<>]+")
-var anyOfCommand, _ = regexp.Compile("any\\s+[\\w\\\"\\s<>]+")
-var maybeCommand, _ = regexp.Compile("maybe\\s+[\\w\\\"\\s<>]+")
+var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of(?P<request>[\w\"\s<>]+)`)
+var someOfCommand, _ = regexp.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var anyOfCommand, _ = regexp.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var maybeCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
 
-func sum(a, b int) int {
-	return a + b
+func doesMatchRegex(r *regexp.Regexp, str string) (map[string]string, bool) {
+	subMatchMap := make(map[string]string)
+	if !r.MatchString(str) {
+		return subMatchMap, false
+	}
+
+	match := r.FindStringSubmatch(str)
+	for i, name := range r.SubexpNames() {
+		if i != 0 {
+			subMatchMap[name] = strings.TrimSpace(match[i])
+		}
+	}
+
+	return subMatchMap, true
 }
 
-func getWhat(line string) string {
-	piece := strings.TrimSpace(line[strings.LastIndex(line, " "):])
+func getWhat(piece string) string {
 	if piece[0] == '"' && piece[len(piece)-1] == '"' {
 		return piece[1 : len(piece)-1]
 	}
@@ -54,18 +65,18 @@ func parse(data string) string {
 
 	for _, piece := range pieces {
 		piece = strings.TrimSpace(piece)
-		if ofCommand.MatchString(piece) {
-			num := piece[:strings.Index(piece, " ")]
-			what := getWhat(piece)
+		if resultMap, ok := doesMatchRegex(amountOfCommand, piece); ok {
+			num := resultMap["amount"]
+			what := getWhat(resultMap["request"])
 			regOut += what + "{" + num + "}"
-		} else if someOfCommand.MatchString(piece) {
-			what := getWhat(piece)
+		} else if resultMap, ok := doesMatchRegex(someOfCommand, piece); ok {
+			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "+"
-		} else if anyOfCommand.MatchString(piece) {
-			what := getWhat(piece)
+		} else if resultMap, ok := doesMatchRegex(anyOfCommand, piece); ok {
+			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "*"
-		} else if maybeCommand.MatchString(piece) {
-			what := getWhat(piece)
+		} else if resultMap, ok := doesMatchRegex(maybeCommand, piece); ok {
+			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "?"
 		} else if canNormalize(piece) {
 			regOut += normalize(piece)

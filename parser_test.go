@@ -2,15 +2,6 @@ package main
 
 import "testing"
 
-func TestSum(t *testing.T) {
-	a := 1
-	b := 2
-	s := sum(a, b)
-	if s != 3 {
-		t.Fatalf(`Sum did not equal 3`)
-	}
-}
-
 func ensureEquals(t *testing.T, expected, result string) {
 	if expected != result {
 		t.Fatalf("'%s' != '%s'", expected, result)
@@ -47,14 +38,14 @@ func TestEnd(t *testing.T) {
 }
 
 func TestMaybe(t *testing.T) {
-	input := "maybe <space>;"
+	input := "maybe of <space>;"
 	expected := "\\s?"
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
 
 func TestAny(t *testing.T) {
-	input := "any <alpha>;"
+	input := "any of <alpha>;"
 	expected := "[a-zA-Z]*"
 	result := parse(input)
 	ensureEquals(t, expected, result)
