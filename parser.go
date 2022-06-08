@@ -6,6 +6,7 @@ import (
 )
 
 var constantDict = map[string]string{
+	"<char>":      ".",
 	"<space>":     "\\s",
 	"<alpha>":     "[a-zA-Z]",
 	"<alphanum>":  "\\w",
@@ -17,15 +18,22 @@ var constantDict = map[string]string{
 	"<!word>":     "",
 	"<start>":     "^",
 	"<end>":       "$",
+	"<newline>":   "\n",
+	"<tab>":       "\t",
+	"<return>":    "\r",
+	"<null>":      "\\0",
+	"<feed>":      "\\f",
+	"<vertical>":  "\\v",
 }
 
+// todo add in ranges, "a to z; 1-3 of a to z"
 var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var rangeCommand, _ = regexp.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var atLeastCommand, _ = regexp.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var atMostCommand, _ = regexp.Compile(`at\s+most\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var rangeOfCommand, _ = regexp.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var atLeastOfCommand, _ = regexp.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var atMostOfCommand, _ = regexp.Compile(`at\s+most\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var someOfCommand, _ = regexp.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var anyOfCommand, _ = regexp.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var maybeCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var maybeOfCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
 
 func doesMatchRegex(r *regexp.Regexp, str string) (map[string]string, bool) {
 	subMatchMap := make(map[string]string)
@@ -51,10 +59,6 @@ func getWhat(piece string) string {
 
 }
 
-func canNormalize(expression string) bool {
-	_, ok := constantDict[expression]
-	return ok
-}
 func normalize(expression string) string {
 	if val, ok := constantDict[expression]; ok {
 		return val
@@ -68,16 +72,16 @@ func parse(data string) string {
 
 	for _, piece := range pieces {
 		piece = strings.TrimSpace(piece)
-		if resultMap, ok := doesMatchRegex(rangeCommand, piece); ok {
+		if resultMap, ok := doesMatchRegex(rangeOfCommand, piece); ok {
 			start := resultMap["amountStart"]
 			end := resultMap["amountEnd"]
 			what := getWhat(resultMap["request"])
 			regOut += "(" + what + ")" + "{" + start + "," + end + "}"
-		} else if resultMap, ok := doesMatchRegex(atLeastCommand, piece); ok {
+		} else if resultMap, ok := doesMatchRegex(atLeastOfCommand, piece); ok {
 			num := resultMap["amount"]
 			what := getWhat(resultMap["request"])
 			regOut += "(" + what + ")" + "{" + num + ",}"
-		} else if resultMap, ok := doesMatchRegex(atMostCommand, piece); ok {
+		} else if resultMap, ok := doesMatchRegex(atMostOfCommand, piece); ok {
 			num := resultMap["amount"]
 			what := getWhat(resultMap["request"])
 			regOut += "(" + what + ")" + "{," + num + "}"
@@ -91,13 +95,11 @@ func parse(data string) string {
 		} else if resultMap, ok := doesMatchRegex(anyOfCommand, piece); ok {
 			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "*"
-		} else if resultMap, ok := doesMatchRegex(maybeCommand, piece); ok {
+		} else if resultMap, ok := doesMatchRegex(maybeOfCommand, piece); ok {
 			what := getWhat(resultMap["request"])
 			regOut += normalize(what) + "?"
-		} else if canNormalize(piece) {
-			regOut += normalize(piece)
 		} else {
-			regOut += piece
+			regOut += normalize(piece)
 		}
 	}
 
