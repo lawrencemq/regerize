@@ -73,3 +73,14 @@ func TestAtMost(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestBeforeBlock(t *testing.T) {
+	input := `before {
+"www.";
+};
+some of <word>;
+".com"`
+	expected := "(?<=www.)\\w+.com"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
