@@ -84,3 +84,14 @@ some of <word>;
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestAfterBlock(t *testing.T) {
+	input := `"www.google.com";
+after {
+"/";
+some of <word>;
+};`
+	expected := "www.google.com(?=/\\w+)"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}

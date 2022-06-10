@@ -120,8 +120,8 @@ func handleCommand(command, interior string) string {
 }
 
 func simplifyBlocks(data string) string {
-	blockCommand := regexp.MustCompile(`(?P<pattern>[\w\s]+ \{[\n\w\.\;"]*.+[\n\w\.\;"]*\};)`)
-	interiorCommand := regexp.MustCompile(`(?P<command>[\w\s<>]+) \{\n(?P<interior>[\w\s\n;\.\"]+)\};`)
+	blockCommand := regexp.MustCompile(`(?P<pattern>[\w\s]+\{(.|\n)*?};)`)
+	interiorCommand := regexp.MustCompile(`(?P<command>[\w\s<>]+)\s+\{\n(?P<interior>(.|\s)+?)\};`)
 
 	blocks := blockCommand.FindAllString(data, -1)
 	for _, block := range blocks {
@@ -139,7 +139,6 @@ func simplifyBlocks(data string) string {
 
 func parse(data string) string {
 	simplifiedData := simplifyBlocks(data)
-
 	pieces := strings.Split(simplifiedData, ";")
 	regOut := ""
 
