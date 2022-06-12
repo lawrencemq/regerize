@@ -102,3 +102,14 @@ func TestRaw(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestCap(t *testing.T) {
+	input := `capture as shiba {
+"inu";
+<space>;
+at least 5 of "wow";
+};`
+	expected := "(?<shib>inu\\s(wow){5,})"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
