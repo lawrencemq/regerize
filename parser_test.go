@@ -135,3 +135,23 @@ func TestEither(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestVariable(t *testing.T) {
+	input := `let .uuidv4 {
+8 of <hex>;
+"-";
+4 of <hex>;
+"-";
+4 of <hex>: 
+"-";
+4 of <hex>: 
+"-";
+12 of <hex>: 
+};
+"user id:";
+.uuidv4;`
+
+	expected := "user id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}[0-9a-fA-F]{4}[0-9a-fA-F]{12}"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}

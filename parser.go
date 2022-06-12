@@ -24,7 +24,10 @@ var constantDict = map[string]string{
 	"<null>":      "\\0",
 	"<feed>":      "\\f",
 	"<vertical>":  "\\v",
+	"<hex>":       "[0-9a-fA-F]",
 }
+
+var userVariables = map[string]string{}
 
 // todo add in ranges, "a to z; 1-3 of a to z"
 var literalStringCommand, _ = regexp.Compile(`^".*"$`)
@@ -56,6 +59,12 @@ func doesMatchRegex(r *regexp.Regexp, str string) (map[string]string, bool) {
 func getWhat(piece string) string {
 	if piece[0] == '"' && piece[len(piece)-1] == '"' {
 		return piece[1 : len(piece)-1]
+	} else if piece[0] == '<' && piece[len(piece)-1] == '>' {
+		val, ok := constantDict[piece]
+		if !ok {
+			panic("No constant named " + piece)
+		}
+		return val
 	}
 	return piece
 
@@ -69,9 +78,10 @@ func normalize(expression string) string {
 }
 
 func parseLine(line string) string {
-	if literalStringCommand.MatchString(line) {
+	if val, ok := userVariables[line]; ok {
+		return val
+	} else if literalStringCommand.MatchString(line) {
 		return regexp.QuoteMeta(line[1 : len(line)-1])
-
 	} else if rawStringCommand.MatchString(line) {
 		return line[1 : len(line)-1]
 	} else if resultMap, ok := doesMatchRegex(rangeOfCommand, line); ok {
@@ -89,7 +99,12 @@ func parseLine(line string) string {
 		return "(" + what + ")" + "{," + num + "}"
 	} else if resultMap, ok := doesMatchRegex(amountOfCommand, line); ok {
 		num := resultMap["amount"]
-		what := getWhat(resultMap["request"])
+		request := resultMap["request"]
+		constant, isAConstant := constantDict[request]
+		if isAConstant {
+			return constant + "{" + num + "}"
+		}
+		what := getWhat(request)
 		return "(" + what + ")" + "{" + num + "}"
 	} else if resultMap, ok := doesMatchRegex(someOfCommand, line); ok {
 		what := getWhat(resultMap["request"])
@@ -131,14 +146,19 @@ func handleCommand(command, interior string) string {
 	} else if strings.HasPrefix(command, "capture as ") {
 		variable := strings.TrimSpace(command[11 : len(command)-1])
 		return "`(?<" + variable + ">" + parseInteriorOfCommand(interior, "") + ")`;"
+	} else if strings.HasPrefix(command, "let .") {
+		variableName := strings.TrimSpace(command[4:])
+		value := parseInteriorOfCommand(interior, "")
+		userVariables[variableName] = value
+		return ""
 	} else {
 		panic("Unknown command: " + command)
 	}
 }
 
 func simplifyBlocks(data string) string {
-	blockCommand := regexp.MustCompile(`(?P<pattern>[\w\s]+\{(.|\n)*?};)`)
-	interiorCommand := regexp.MustCompile(`(?P<command>[\w\s<>]+)\s+\{\n(?P<interior>(.|\s)+?)\};`)
+	blockCommand := regexp.MustCompile(`(?m)^(?P<pattern>[\w\s\.]+\{(.|\n)*?};)`)
+	interiorCommand := regexp.MustCompile(`^(?P<command>[\w\s<>\.]+)\s*\{\n(?P<interior>(.|\s)+?)\}`)
 
 	blocks := blockCommand.FindAllString(data, -1)
 	for _, block := range blocks {
