@@ -105,22 +105,32 @@ func parseLine(line string) string {
 	}
 }
 
-func handleCommand(command, interior string) string {
+func parseInteriorOfCommand(interior, joiningChar string) string {
 	pieces := strings.Split(interior, ";")
-	regOut := ""
+	var parsedPieces []string
 	for _, piece := range pieces {
-		regOut += parseLine(strings.TrimSpace(piece))
+		if len(piece) == 0 {
+			continue
+		}
+		parsedLine := parseLine(strings.TrimSpace(piece))
+		parsedPieces = append(parsedPieces, parsedLine)
 	}
+	return strings.Join(parsedPieces, joiningChar)
+}
+
+func handleCommand(command, interior string) string {
 
 	if command == "before" {
-		return "`(?<=" + regOut + ")`;"
+		return "`(?<=" + parseInteriorOfCommand(interior, "") + ")`;"
 	} else if command == "after" {
-		return "`(?=" + regOut + ")`;"
+		return "`(?=" + parseInteriorOfCommand(interior, "") + ")`;"
 	} else if command == "match" {
-		return "`(?:" + regOut + ")`;"
+		return "`(?:" + parseInteriorOfCommand(interior, "") + ")`;"
+	} else if command == "either" {
+		return "`(?:" + parseInteriorOfCommand(interior, "|") + ")`;"
 	} else if strings.HasPrefix(command, "capture as ") {
 		variable := strings.TrimSpace(command[11 : len(command)-1])
-		return "`(?<" + variable + ">" + regOut + ")`;"
+		return "`(?<" + variable + ">" + parseInteriorOfCommand(interior, "") + ")`;"
 	} else {
 		panic("Unknown command: " + command)
 	}

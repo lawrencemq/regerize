@@ -124,3 +124,14 @@ func TestMatch(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestEither(t *testing.T) {
+	input := `either {
+		"corgi";
+		"shiba";
+		"husky";
+		};`
+	expected := "(?:corgi|shiba|husky)"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
