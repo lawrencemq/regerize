@@ -103,13 +103,24 @@ func TestRaw(t *testing.T) {
 	ensureEquals(t, expected, result)
 }
 
-func TestCap(t *testing.T) {
+func TestCapture(t *testing.T) {
 	input := `capture as shiba {
 "inu";
 <space>;
 at least 5 of "wow";
 };`
 	expected := "(?<shib>inu\\s(wow){5,})"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
+
+func TestMatch(t *testing.T) {
+	input := `match {
+		16 of "na";
+		<space>;
+		"BATMAN";
+		};`
+	expected := "(?:(na){16}\\sBATMAN)"
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }

@@ -116,6 +116,8 @@ func handleCommand(command, interior string) string {
 		return "`(?<=" + regOut + ")`;"
 	} else if command == "after" {
 		return "`(?=" + regOut + ")`;"
+	} else if command == "match" {
+		return "`(?:" + regOut + ")`;"
 	} else if strings.HasPrefix(command, "capture as ") {
 		variable := strings.TrimSpace(command[11 : len(command)-1])
 		return "`(?<" + variable + ">" + regOut + ")`;"
