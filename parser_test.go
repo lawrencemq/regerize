@@ -80,7 +80,7 @@ func TestBeforeBlock(t *testing.T) {
 };
 some of <word>;
 ".com"`
-	expected := "(?<=www.)\\w+.com"
+	expected := "(?<=www\\.)\\w+\\.com"
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
@@ -91,7 +91,14 @@ after {
 "/";
 some of <word>;
 };`
-	expected := "www.google.com(?=/\\w+)"
+	expected := "www\\.google\\.com(?=/\\w+)"
+	result := parse(input)
+	ensureEquals(t, expected, result)
+}
+
+func TestRaw(t *testing.T) {
+	input := "`abc123(?=something)`;"
+	expected := "abc123(?=something)"
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }

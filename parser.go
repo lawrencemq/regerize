@@ -27,7 +27,8 @@ var constantDict = map[string]string{
 }
 
 // todo add in ranges, "a to z; 1-3 of a to z"
-var directStringCommand, _ = regexp.Compile(`^".*"$`)
+var literalStringCommand, _ = regexp.Compile(`^".*"$`)
+var rawStringCommand, _ = regexp.Compile("^`.*?`$")
 var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var rangeOfCommand, _ = regexp.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var atLeastOfCommand, _ = regexp.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
@@ -68,10 +69,11 @@ func normalize(expression string) string {
 }
 
 func parseLine(line string) string {
-	if directStringCommand.MatchString(line) {
-		// return regexp.QuoteMeta(line[1 : len(line)-1])
-		return line[1 : len(line)-1]
+	if literalStringCommand.MatchString(line) {
+		return regexp.QuoteMeta(line[1 : len(line)-1])
 
+	} else if rawStringCommand.MatchString(line) {
+		return line[1 : len(line)-1]
 	} else if resultMap, ok := doesMatchRegex(rangeOfCommand, line); ok {
 		start := resultMap["amountStart"]
 		end := resultMap["amountEnd"]
@@ -111,9 +113,9 @@ func handleCommand(command, interior string) string {
 	}
 
 	if command == "before" {
-		return `"(?<=` + regOut + `)";`
+		return "`(?<=" + regOut + ")`;"
 	} else if command == "after" {
-		return `"(?=` + regOut + `)";`
+		return "`(?=" + regOut + ")`;"
 	} else {
 		panic("Unknown command: " + command)
 	}
