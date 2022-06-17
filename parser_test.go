@@ -155,3 +155,11 @@ func TestVariable(t *testing.T) {
 	result := parse(input)
 	ensureEquals(t, expected, result)
 }
+
+func TestImport(t *testing.T) {
+	startingFile := "test_data/import1.rgr"
+
+	expected := "(?:(ring ){8},\\sba(na){2}\\sphone)"
+	result := parseFile(startingFile)
+	ensureEquals(t, expected, result)
+}

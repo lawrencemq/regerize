@@ -1,0 +1,10 @@
+#import test_data/import2;
+
+match {
+    .ringing;
+    ",";
+    <space>;
+    .banana;
+    <space>;
+    `phone`
+};

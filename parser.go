@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"regexp"
 	"strings"
 )
@@ -39,6 +40,9 @@ var atMostOfCommand, _ = regexp.Compile(`at\s+most\s+(?P<amount>\d+)\s+of\s+(?P<
 var someOfCommand, _ = regexp.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var anyOfCommand, _ = regexp.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`)
 var maybeOfCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
+
+// other useful regexes
+var importRegex, _ = regexp.Compile(`^#import\s+(?P<filename>[.\w\-\/]+);`)
 
 func doesMatchRegex(r *regexp.Regexp, str string) (map[string]string, bool) {
 	subMatchMap := make(map[string]string)
@@ -184,4 +188,86 @@ func parse(data string) string {
 	}
 
 	return regOut
+}
+
+type Stack []string
+
+func (s *Stack) IsEmpty() bool {
+	return len(*s) == 0
+}
+func (s *Stack) Push(strs ...string) {
+	if len(strs) > 0 {
+		*s = append(*s, strs...)
+	}
+
+}
+
+func (s *Stack) Pop() (string, bool) {
+	if s.IsEmpty() {
+		return "", false
+	} else {
+		index := len(*s) - 1
+		element := (*s)[index]
+		*s = (*s)[:index]
+		return element, true
+	}
+}
+func (s *Stack) JoinInOrder() string {
+	dst := make([]string, len(*s))
+	copy(dst, *s)
+
+	// reversing slick
+	for i, j := 0, len(dst)-1; i < j; i, j = i+1, j-1 {
+		dst[i], dst[j] = dst[j], dst[i]
+	}
+	return strings.Join(dst, "\n")
+}
+
+func readInFile(filename string) string {
+	dat, err := os.ReadFile(filename)
+	if err != nil {
+		panic("Unable to read " + filename + ". " + err.Error())
+	}
+	return string(dat)
+}
+
+func findImports(contents string) []string {
+
+	filenamesFound := []string{}
+	if propertyMap, ok := doesMatchRegex(importRegex, contents); ok {
+		filename := strings.TrimSpace(propertyMap["filename"]) + ".rgr"
+		filenamesFound = append(filenamesFound, filename)
+	}
+	return filenamesFound
+}
+
+func removeImportsFromContents(contents string) string {
+
+	return importRegex.ReplaceAllString(contents, "")
+
+}
+
+func parseFile(filename string) string {
+
+	setOfFilesRead := map[string]bool{}
+	contents := &Stack{}
+	fileStack := &Stack{}
+	fileStack.Push(filename)
+
+	for !fileStack.IsEmpty() {
+		toRead, _ := fileStack.Pop()
+		if _, exists := setOfFilesRead[toRead]; exists {
+			panic("Double import of file " + toRead)
+		}
+
+		setOfFilesRead[toRead] = true
+		fileContents := readInFile(toRead)
+		fileStack.Push(findImports(fileContents)...)
+		contents.Push(removeImportsFromContents(fileContents))
+	}
+
+	allContents := contents.JoinInOrder()
+
+	return parse(allContents)
+
 }

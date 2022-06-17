@@ -1,0 +1,5 @@
+#import test_data/import3;
+
+let .ringing {
+    8 of "ring ";
+};
