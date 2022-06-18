@@ -190,20 +190,20 @@ func parse(data string) string {
 	return regOut
 }
 
-type Stack []string
+type stack []string
 
-func (s *Stack) IsEmpty() bool {
+func (s *stack) isEmpty() bool {
 	return len(*s) == 0
 }
-func (s *Stack) Push(strs ...string) {
+func (s *stack) push(strs ...string) {
 	if len(strs) > 0 {
 		*s = append(*s, strs...)
 	}
 
 }
 
-func (s *Stack) Pop() (string, bool) {
-	if s.IsEmpty() {
+func (s *stack) pop() (string, bool) {
+	if s.isEmpty() {
 		return "", false
 	} else {
 		index := len(*s) - 1
@@ -212,7 +212,7 @@ func (s *Stack) Pop() (string, bool) {
 		return element, true
 	}
 }
-func (s *Stack) JoinInOrder() string {
+func (s *stack) JoinInOrder() string {
 	dst := make([]string, len(*s))
 	copy(dst, *s)
 
@@ -250,20 +250,20 @@ func removeImportsFromContents(contents string) string {
 func parseFile(filename string) string {
 
 	setOfFilesRead := map[string]bool{}
-	contents := &Stack{}
-	fileStack := &Stack{}
-	fileStack.Push(filename)
+	contents := &stack{}
+	fileStack := &stack{}
+	fileStack.push(filename)
 
-	for !fileStack.IsEmpty() {
-		toRead, _ := fileStack.Pop()
+	for !fileStack.isEmpty() {
+		toRead, _ := fileStack.pop()
 		if _, exists := setOfFilesRead[toRead]; exists {
 			panic("Double import of file " + toRead)
 		}
 
 		setOfFilesRead[toRead] = true
 		fileContents := readInFile(toRead)
-		fileStack.Push(findImports(fileContents)...)
-		contents.Push(removeImportsFromContents(fileContents))
+		fileStack.push(findImports(fileContents)...)
+		contents.push(removeImportsFromContents(fileContents))
 	}
 
 	allContents := contents.JoinInOrder()
