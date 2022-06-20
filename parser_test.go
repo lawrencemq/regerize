@@ -186,3 +186,45 @@ func TestImport(t *testing.T) {
 	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
+
+func TestMultilineComment(t *testing.T) {
+	input := `/**
+hello world
+	i am a robot
+... beep-boop /.[]{}\0(*&62528971623!@#!@#!@....
+	
+	*/
+"0x";
+6 of "F";
+`
+
+	expected := "0x(F){6}"
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
+	ensureEquals(t, expected, result)
+}
+
+func TestLineComment(t *testing.T) {
+	input := `"0x";
+// I want this to be ... beep-boop /.[]{}\0(*&62528971623!@#!@#!@....
+6 of "F";
+`
+
+	expected := "0x(F){6}"
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
+	ensureEquals(t, expected, result)
+
+}
+
+func TestEndOfLineComment(t *testing.T) {
+	input := `"0x";
+6 of "F"; // I want this to be ... beep-boop /.[]{}\0(*&62528971623!@#!@#!@....
+`
+
+	expected := "0x(F){6}"
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
+	ensureEquals(t, expected, result)
+
+}

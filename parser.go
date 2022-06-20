@@ -43,6 +43,10 @@ var someOfCommand, _ = regexp2.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`, r
 var anyOfCommand, _ = regexp2.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
 var maybeOfCommand, _ = regexp2.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
 
+// commenting
+var multiLineComment, _ = regexp2.Compile(`/\*{2}[\s\S]*?\*/`, regexp2.RE2)
+var singleComment, _ = regexp2.Compile(`//[\S\s]*?$`, regexp2.Multiline)
+
 // other useful regexes
 var importRegex, _ = regexp2.Compile(`^#import\s+(?P<filename>[.\w\-\/]+);`, regexp2.RE2)
 
@@ -61,12 +65,6 @@ func doesMatchRegex(r *regexp2.Regexp, str string) (map[string]string, bool) {
 	for _, g := range gps {
 		subMatchMap[g.Name] = strings.TrimSpace(g.String())
 	}
-
-	// for i, name := range r.SubexpNames() {
-	// 	if i != 0 {
-	// 		subMatchMap[name] = strings.TrimSpace(match[i])
-	// 	}
-	// }
 
 	return subMatchMap, true
 }
@@ -135,6 +133,33 @@ func parseLine(line string) string {
 	}
 }
 
+func removeCommentWithRegex(r *regexp2.Regexp, data string) string {
+	if matches, _ := r.MatchString(data); !matches {
+		return data
+	}
+
+	newData := strings.Clone(data)
+
+	match, err := r.FindStringMatch(data)
+	if err != nil {
+		panic(err)
+	}
+
+	gps := match.Groups()
+	for _, g := range gps {
+		newData = strings.ReplaceAll(newData, g.String(), "")
+	}
+
+	return newData
+
+}
+
+func removeComments(data string) string {
+
+	return removeCommentWithRegex(singleComment, removeCommentWithRegex(multiLineComment, data))
+
+}
+
 func parseInteriorOfCommand(interior, joiningChar string) string {
 	pieces := strings.Split(interior, ";")
 	var parsedPieces []string
@@ -192,7 +217,7 @@ func simplifyBlocks(data string) string {
 }
 
 func parse(data string) string {
-	simplifiedData := simplifyBlocks(data)
+	simplifiedData := simplifyBlocks(removeComments(data))
 	pieces := strings.Split(simplifiedData, ";")
 	regOut := ""
 
