@@ -4,6 +4,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/dlclark/regexp2"
 )
 
 var constantDict = map[string]string{
@@ -31,31 +33,40 @@ var constantDict = map[string]string{
 var userVariables = map[string]string{}
 
 // todo add in ranges, "a to z; 1-3 of a to z"
-var literalStringCommand, _ = regexp.Compile(`^".*"$`)
-var rawStringCommand, _ = regexp.Compile("^`.*?`$")
-var amountOfCommand, _ = regexp.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var rangeOfCommand, _ = regexp.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var atLeastOfCommand, _ = regexp.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var atMostOfCommand, _ = regexp.Compile(`at\s+most\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var someOfCommand, _ = regexp.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var anyOfCommand, _ = regexp.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`)
-var maybeOfCommand, _ = regexp.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`)
+var literalStringCommand, _ = regexp2.Compile(`^".*"$`, regexp2.RE2)
+var rawStringCommand, _ = regexp2.Compile("^`.*?`$", regexp2.RE2)
+var amountOfCommand, _ = regexp2.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var rangeOfCommand, _ = regexp2.Compile(`(?P<amountStart>\d+)\s+to\s+(?P<amountEnd>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var atLeastOfCommand, _ = regexp2.Compile(`at\s+least\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var atMostOfCommand, _ = regexp2.Compile(`at\s+most\s+(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var someOfCommand, _ = regexp2.Compile(`some\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var anyOfCommand, _ = regexp2.Compile(`any\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
+var maybeOfCommand, _ = regexp2.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
 
 // other useful regexes
-var importRegex, _ = regexp.Compile(`^#import\s+(?P<filename>[.\w\-\/]+);`)
+var importRegex, _ = regexp2.Compile(`^#import\s+(?P<filename>[.\w\-\/]+);`, regexp2.RE2)
 
-func doesMatchRegex(r *regexp.Regexp, str string) (map[string]string, bool) {
+func doesMatchRegex(r *regexp2.Regexp, str string) (map[string]string, bool) {
 	subMatchMap := make(map[string]string)
-	if !r.MatchString(str) {
+	if matches, _ := r.MatchString(str); !matches {
 		return subMatchMap, false
 	}
 
-	match := r.FindStringSubmatch(str)
-	for i, name := range r.SubexpNames() {
-		if i != 0 {
-			subMatchMap[name] = strings.TrimSpace(match[i])
-		}
+	match, err := r.FindStringMatch(str)
+	if err != nil {
+		panic(err)
 	}
+
+	gps := match.Groups()
+	for _, g := range gps {
+		subMatchMap[g.Name] = strings.TrimSpace(g.String())
+	}
+
+	// for i, name := range r.SubexpNames() {
+	// 	if i != 0 {
+	// 		subMatchMap[name] = strings.TrimSpace(match[i])
+	// 	}
+	// }
 
 	return subMatchMap, true
 }
@@ -84,9 +95,9 @@ func normalize(expression string) string {
 func parseLine(line string) string {
 	if val, ok := userVariables[line]; ok {
 		return val
-	} else if literalStringCommand.MatchString(line) {
+	} else if matches, _ := literalStringCommand.MatchString(line); matches {
 		return regexp.QuoteMeta(line[1 : len(line)-1])
-	} else if rawStringCommand.MatchString(line) {
+	} else if matches, _ := rawStringCommand.MatchString(line); matches {
 		return line[1 : len(line)-1]
 	} else if resultMap, ok := doesMatchRegex(rangeOfCommand, line); ok {
 		start := resultMap["amountStart"]
@@ -161,15 +172,17 @@ func handleCommand(command, interior string) string {
 }
 
 func simplifyBlocks(data string) string {
-	blockCommand := regexp.MustCompile(`(?m)^(?P<pattern>[\w\s\.]+\{(.|\n)*?};)`)
-	interiorCommand := regexp.MustCompile(`^(?P<command>[\w\s<>\.]+)\s*\{\n(?P<interior>(.|\s)+?)\}`)
+	blockCommand := regexp2.MustCompile(`(?m)^(?P<pattern>[\w\s\.]+\{(.|\n)*?};)`, regexp2.RE2)
+	interiorCommand := regexp2.MustCompile(`^(?P<command>[\w\s<>\.]+)\s*\{\n(?P<interior>(.|\s)+?)\}`, regexp2.RE2)
 
-	blocks := blockCommand.FindAllString(data, -1)
-	for _, block := range blocks {
+	matches, _ := blockCommand.FindStringMatch(data)
+	for matches != nil {
+		block := matches.String()
 		if propertyMap, ok := doesMatchRegex(interiorCommand, block); ok {
 			command := strings.TrimSpace(propertyMap["command"])
 			replacementStr := handleCommand(command, propertyMap["interior"])
 			data = strings.ReplaceAll(data, block, replacementStr)
+			matches, _ = blockCommand.FindNextMatch(matches)
 		} else {
 			panic("Unable to parse" + block)
 		}
@@ -188,6 +201,12 @@ func parse(data string) string {
 	}
 
 	return regOut
+}
+
+func Parse(data string) (string, error) {
+	regexStr := parse(data)
+	_, error := regexp2.Compile(regexStr, regexp2.RE2)
+	return regexStr, error
 }
 
 type stack []string
@@ -243,11 +262,13 @@ func findImports(contents string) []string {
 
 func removeImportsFromContents(contents string) string {
 
-	return importRegex.ReplaceAllString(contents, "")
+	// todo check for error
+	result, _ := importRegex.Replace(contents, "", -1, -1)
+	return result
 
 }
 
-func parseFile(filename string) string {
+func ParseFile(filename string) (string, error) {
 
 	setOfFilesRead := map[string]bool{}
 	contents := &stack{}
@@ -268,6 +289,8 @@ func parseFile(filename string) string {
 
 	allContents := contents.JoinInOrder()
 
-	return parse(allContents)
+	regexStr := parse(allContents)
+	_, error := regexp2.Compile(regexStr, regexp2.RE2)
+	return regexStr, error
 
 }

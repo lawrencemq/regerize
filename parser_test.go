@@ -9,12 +9,19 @@ func ensureEquals(t *testing.T, expected, result string) {
 		t.Fatalf("'%s' != '%s'", expected, result)
 	}
 }
+
+func ensureErrorNil(t *testing.T, err error) {
+	if err != nil {
+		t.Fail()
+	}
+}
 func TestBatman(t *testing.T) {
 	expected := "(na){16}\\sbatman"
 	input := `16 of "na";
 <space>;
 batman;`
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 
 }
@@ -22,55 +29,63 @@ batman;`
 func TestSomeOf(t *testing.T) {
 	input := "some of <alpha>"
 	expected := "[a-zA-Z]+"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestStart(t *testing.T) {
 	input := "<start>;hello world;"
 	expected := "^hello world"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 func TestEnd(t *testing.T) {
 	input := "world;<end>;"
 	expected := "world$"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestMaybe(t *testing.T) {
 	input := "maybe of <space>;"
 	expected := "\\s?"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestAny(t *testing.T) {
 	input := "any of <alpha>;"
 	expected := "[a-zA-Z]*"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestRange(t *testing.T) {
 	input := "5 to 9 of \"hello\""
 	expected := "(hello){5,9}"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestAtLeast(t *testing.T) {
 	input := "at least 5 of \"ducks\""
 	expected := "(ducks){5,}"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestAtMost(t *testing.T) {
 	input := "at most 5 of \"ducks\""
 	expected := "(ducks){,5}"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -81,7 +96,8 @@ func TestBeforeBlock(t *testing.T) {
 some of <word>;
 ".com"`
 	expected := "(?<=www\\.)\\w+\\.com"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -92,14 +108,16 @@ after {
 some of <word>;
 };`
 	expected := "www\\.google\\.com(?=/\\w+)"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
 func TestRaw(t *testing.T) {
 	input := "`abc123(?=something)`;"
 	expected := "abc123(?=something)"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -110,7 +128,8 @@ func TestCapture(t *testing.T) {
 at least 5 of "wow";
 };`
 	expected := "(?<shib>inu\\s(wow){5,})"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -121,7 +140,8 @@ func TestMatch(t *testing.T) {
 		"BATMAN";
 		};`
 	expected := "(?:(na){16}\\sBATMAN)"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -132,7 +152,8 @@ func TestEither(t *testing.T) {
 		"husky";
 		};`
 	expected := "(?:corgi|shiba|husky)"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -152,7 +173,8 @@ func TestVariable(t *testing.T) {
 .uuidv4;`
 
 	expected := "user id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}[0-9a-fA-F]{4}[0-9a-fA-F]{12}"
-	result := parse(input)
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
 
@@ -160,6 +182,7 @@ func TestImport(t *testing.T) {
 	startingFile := "test_data/import1.rgr"
 
 	expected := "(?:(ring ){8},\\sba(na){2}\\sphone)"
-	result := parseFile(startingFile)
+	result, error := ParseFile(startingFile)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
