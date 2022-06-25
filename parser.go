@@ -59,7 +59,7 @@ func doesMatchRegex(r *regexp2.Regexp, str string) (map[string]string, bool) {
 
 	match, err := r.FindStringMatch(str)
 	if err != nil {
-		panic(err)
+		return subMatchMap, false
 	}
 
 	gps := match.Groups()
@@ -70,17 +70,17 @@ func doesMatchRegex(r *regexp2.Regexp, str string) (map[string]string, bool) {
 	return subMatchMap, true
 }
 
-func getWhat(piece string) string {
+func getWhat(piece string) (string, error) {
 	if piece[0] == '"' && piece[len(piece)-1] == '"' {
-		return piece[1 : len(piece)-1]
+		return piece[1 : len(piece)-1], nil
 	} else if piece[0] == '<' && piece[len(piece)-1] == '>' {
 		val, ok := constantDict[piece]
 		if !ok {
-			panic("No constant named " + piece)
+			return "", errors.New("No constant named " + piece)
 		}
-		return val
+		return val, nil
 	}
-	return piece
+	return piece, nil
 
 }
 
@@ -91,59 +91,80 @@ func normalize(expression string) string {
 	return expression
 }
 
-func parseLine(line string) string {
+func parseLine(line string) (string, error) {
 	if val, ok := userVariables[line]; ok {
-		return val
+		return val, nil
 	} else if matches, _ := literalStringCommand.MatchString(line); matches {
-		return regexp.QuoteMeta(line[1 : len(line)-1])
+		return regexp.QuoteMeta(line[1 : len(line)-1]), nil
 	} else if matches, _ := rawStringCommand.MatchString(line); matches {
-		return line[1 : len(line)-1]
+		return line[1 : len(line)-1], nil
 	} else if resultMap, ok := doesMatchRegex(rangeOfCommand, line); ok {
 		start := resultMap["amountStart"]
 		end := resultMap["amountEnd"]
-		what := getWhat(resultMap["request"])
-		return "(" + what + ")" + "{" + start + "," + end + "}"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return "(" + what + ")" + "{" + start + "," + end + "}", nil
 	} else if resultMap, ok := doesMatchRegex(atLeastOfCommand, line); ok {
 		num := resultMap["amount"]
-		what := getWhat(resultMap["request"])
-		return "(" + what + ")" + "{" + num + ",}"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return "(" + what + ")" + "{" + num + ",}", nil
 	} else if resultMap, ok := doesMatchRegex(atMostOfCommand, line); ok {
 		num := resultMap["amount"]
-		what := getWhat(resultMap["request"])
-		return "(" + what + ")" + "{," + num + "}"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return "(" + what + ")" + "{," + num + "}", nil
 	} else if resultMap, ok := doesMatchRegex(amountOfCommand, line); ok {
 		num := resultMap["amount"]
 		request := resultMap["request"]
 		constant, isAConstant := constantDict[request]
 		if isAConstant {
-			return constant + "{" + num + "}"
+			return constant + "{" + num + "}", nil
 		}
-		what := getWhat(request)
-		return "(" + what + ")" + "{" + num + "}"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return "(" + what + ")" + "{" + num + "}", nil
 	} else if resultMap, ok := doesMatchRegex(someOfCommand, line); ok {
-		what := getWhat(resultMap["request"])
-		return normalize(what) + "+"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return normalize(what) + "+", nil
 	} else if resultMap, ok := doesMatchRegex(anyOfCommand, line); ok {
-		what := getWhat(resultMap["request"])
-		return normalize(what) + "*"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return normalize(what) + "*", nil
 	} else if resultMap, ok := doesMatchRegex(maybeOfCommand, line); ok {
-		what := getWhat(resultMap["request"])
-		return normalize(what) + "?"
+		what, wErr := getWhat(resultMap["request"])
+		if wErr != nil {
+			return "", wErr
+		}
+		return normalize(what) + "?", nil
 	} else {
-		return normalize(line)
+		return normalize(line), nil
 	}
 }
 
-func removeCommentWithRegex(r *regexp2.Regexp, data string) string {
+func removeCommentWithRegex(r *regexp2.Regexp, data string) (string, error) {
 	if matches, _ := r.MatchString(data); !matches {
-		return data
+		return data, nil
 	}
 
 	newData := strings.Clone(data)
 
 	match, err := r.FindStringMatch(data)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	gps := match.Groups()
@@ -151,45 +172,75 @@ func removeCommentWithRegex(r *regexp2.Regexp, data string) string {
 		newData = strings.ReplaceAll(newData, g.String(), "")
 	}
 
-	return newData
+	return newData, nil
 
 }
 
-func removeComments(data string) string {
+func removeComments(data string) (string, error) {
+	dataSansMlComments, err := removeCommentWithRegex(multiLineComment, data)
+	if err != nil {
+		return "", err
+	}
 
-	return removeCommentWithRegex(singleComment, removeCommentWithRegex(multiLineComment, data))
+	return removeCommentWithRegex(singleComment, dataSansMlComments)
 
 }
 
-func parseInteriorOfCommand(interior, joiningChar string) string {
+func parseInteriorOfCommand(interior, joiningChar string) (string, error) {
 	pieces := strings.Split(interior, ";")
 	var parsedPieces []string
 	for _, piece := range pieces {
 		if len(piece) == 0 {
 			continue
 		}
-		parsedLine := parseLine(strings.TrimSpace(piece))
+		parsedLine, parseError := parseLine(strings.TrimSpace(piece))
+		if parseError != nil {
+			return "", parseError
+		}
 		parsedPieces = append(parsedPieces, parsedLine)
 	}
-	return strings.Join(parsedPieces, joiningChar)
+	return strings.Join(parsedPieces, joiningChar), nil
 }
 
 func handleCommand(command, interior string) (string, error) {
 
 	if command == "before" {
-		return "`(?<=" + parseInteriorOfCommand(interior, "") + ")`;", nil
+		interior, err := parseInteriorOfCommand(interior, "")
+		if err != nil {
+			return "", err
+		}
+		return "`(?<=" + interior + ")`;", nil
 	} else if command == "after" {
-		return "`(?=" + parseInteriorOfCommand(interior, "") + ")`;", nil
+		interior, err := parseInteriorOfCommand(interior, "")
+		if err != nil {
+			return "", err
+		}
+		return "`(?=" + interior + ")`;", nil
 	} else if command == "match" {
-		return "`(?:" + parseInteriorOfCommand(interior, "") + ")`;", nil
+		interior, err := parseInteriorOfCommand(interior, "")
+		if err != nil {
+			return "", err
+		}
+		return "`(?:" + interior + ")`;", nil
 	} else if command == "either" {
-		return "`(?:" + parseInteriorOfCommand(interior, "|") + ")`;", nil
+		interior, err := parseInteriorOfCommand(interior, "|")
+		if err != nil {
+			return "", err
+		}
+		return "`(?:" + interior + ")`;", nil
 	} else if strings.HasPrefix(command, "capture as ") {
 		variable := strings.TrimSpace(command[11 : len(command)-1])
-		return "`(?<" + variable + ">" + parseInteriorOfCommand(interior, "") + ")`;", nil
+		interior, err := parseInteriorOfCommand(interior, "")
+		if err != nil {
+			return "", err
+		}
+		return "`(?<" + variable + ">" + interior + ")`;", nil
 	} else if strings.HasPrefix(command, "let .") {
 		variableName := strings.TrimSpace(command[4:])
-		value := parseInteriorOfCommand(interior, "")
+		value, err := parseInteriorOfCommand(interior, "")
+		if err != nil {
+			return "", err
+		}
 		userVariables[variableName] = value
 		return "", nil
 	} else {
@@ -221,7 +272,11 @@ func simplifyBlocks(data string) (string, error) {
 }
 
 func parse(data string) (string, error) {
-	simplifiedData, error := simplifyBlocks(removeComments(data))
+	dataSansComments, commentError := removeComments(data)
+	if commentError != nil {
+		return "", commentError
+	}
+	simplifiedData, error := simplifyBlocks(dataSansComments)
 	if error != nil {
 		return "", error
 	}
@@ -229,7 +284,11 @@ func parse(data string) (string, error) {
 	regOut := ""
 
 	for _, piece := range pieces {
-		regOut += parseLine(strings.TrimSpace(piece))
+		line, err := parseLine(strings.TrimSpace(piece))
+		if err != nil {
+			return "", err
+		}
+		regOut += line
 	}
 
 	return regOut, nil
