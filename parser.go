@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"regexp"
 	"strings"
@@ -303,7 +304,7 @@ func ParseFile(filename string) (string, error) {
 	for !fileStack.isEmpty() {
 		toRead, _ := fileStack.pop()
 		if _, exists := setOfFilesRead[toRead]; exists {
-			panic("Double import of file " + toRead)
+			return "", errors.New("Double import of file " + toRead)
 		}
 
 		setOfFilesRead[toRead] = true

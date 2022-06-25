@@ -240,3 +240,12 @@ func TestEitherCommand(t *testing.T) {
 	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
+
+func TestDoubleImportReturnsError(t *testing.T) {
+	startingFile := "test_data/circular_dep1.rgr"
+
+	expected := ""
+	result, error := ParseFile(startingFile)
+	ensureEquals(t, error.Error(), "Double import of file test_data/circular_dep1.rgr")
+	ensureEquals(t, expected, result)
+}
