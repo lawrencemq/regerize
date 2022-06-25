@@ -228,3 +228,15 @@ func TestEndOfLineComment(t *testing.T) {
 	ensureEquals(t, expected, result)
 
 }
+
+func TestEitherCommand(t *testing.T) {
+	input := `either{
+		<space>;
+		"batman";
+		};`
+
+	expected := "(?:\\s|batman)"
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
+	ensureEquals(t, expected, result)
+}

@@ -33,6 +33,7 @@ var constantDict = map[string]string{
 var userVariables = map[string]string{}
 
 // todo add in ranges, "a to z; 1-3 of a to z"
+
 var literalStringCommand, _ = regexp2.Compile(`^".*"$`, regexp2.RE2)
 var rawStringCommand, _ = regexp2.Compile("^`.*?`$", regexp2.RE2)
 var amountOfCommand, _ = regexp2.Compile(`(?P<amount>\d+)\s+of\s+(?P<request>[\w\"\s<>]+)`, regexp2.RE2)
@@ -47,7 +48,6 @@ var maybeOfCommand, _ = regexp2.Compile(`maybe\s+of\s+(?P<request>[\w\"\s<>]+)`,
 var multiLineComment, _ = regexp2.Compile(`/\*{2}[\s\S]*?\*/`, regexp2.RE2)
 var singleComment, _ = regexp2.Compile(`//[\S\s]*?$`, regexp2.Multiline)
 
-// other useful regexes
 var importRegex, _ = regexp2.Compile(`^#import\s+(?P<filename>[.\w\-\/]+);`, regexp2.RE2)
 
 func doesMatchRegex(r *regexp2.Regexp, str string) (map[string]string, bool) {
