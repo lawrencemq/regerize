@@ -174,30 +174,30 @@ func parseInteriorOfCommand(interior, joiningChar string) string {
 	return strings.Join(parsedPieces, joiningChar)
 }
 
-func handleCommand(command, interior string) string {
+func handleCommand(command, interior string) (string, error) {
 
 	if command == "before" {
-		return "`(?<=" + parseInteriorOfCommand(interior, "") + ")`;"
+		return "`(?<=" + parseInteriorOfCommand(interior, "") + ")`;", nil
 	} else if command == "after" {
-		return "`(?=" + parseInteriorOfCommand(interior, "") + ")`;"
+		return "`(?=" + parseInteriorOfCommand(interior, "") + ")`;", nil
 	} else if command == "match" {
-		return "`(?:" + parseInteriorOfCommand(interior, "") + ")`;"
+		return "`(?:" + parseInteriorOfCommand(interior, "") + ")`;", nil
 	} else if command == "either" {
-		return "`(?:" + parseInteriorOfCommand(interior, "|") + ")`;"
+		return "`(?:" + parseInteriorOfCommand(interior, "|") + ")`;", nil
 	} else if strings.HasPrefix(command, "capture as ") {
 		variable := strings.TrimSpace(command[11 : len(command)-1])
-		return "`(?<" + variable + ">" + parseInteriorOfCommand(interior, "") + ")`;"
+		return "`(?<" + variable + ">" + parseInteriorOfCommand(interior, "") + ")`;", nil
 	} else if strings.HasPrefix(command, "let .") {
 		variableName := strings.TrimSpace(command[4:])
 		value := parseInteriorOfCommand(interior, "")
 		userVariables[variableName] = value
-		return ""
+		return "", nil
 	} else {
-		panic("Unknown command: " + command)
+		return "", errors.New("Unknown command: " + command)
 	}
 }
 
-func simplifyBlocks(data string) string {
+func simplifyBlocks(data string) (string, error) {
 	blockCommand := regexp2.MustCompile(`(?m)^(?P<pattern>[\w\s\.]+\{(.|\n)*?};)`, regexp2.RE2)
 	interiorCommand := regexp2.MustCompile(`^(?P<command>[\w\s<>\.]+)\s*\{\n(?P<interior>(.|\s)+?)\}`, regexp2.RE2)
 
@@ -206,19 +206,25 @@ func simplifyBlocks(data string) string {
 		block := matches.String()
 		if propertyMap, ok := doesMatchRegex(interiorCommand, block); ok {
 			command := strings.TrimSpace(propertyMap["command"])
-			replacementStr := handleCommand(command, propertyMap["interior"])
+			replacementStr, error := handleCommand(command, propertyMap["interior"])
+			if error != nil {
+				return "", error
+			}
 			data = strings.ReplaceAll(data, block, replacementStr)
 			matches, _ = blockCommand.FindNextMatch(matches)
 		} else {
-			panic("Unable to parse" + block)
+			return "", errors.New("Unable to parse" + block)
 		}
 	}
 
-	return data
+	return data, nil
 }
 
-func parse(data string) string {
-	simplifiedData := simplifyBlocks(removeComments(data))
+func parse(data string) (string, error) {
+	simplifiedData, error := simplifyBlocks(removeComments(data))
+	if error != nil {
+		return "", error
+	}
 	pieces := strings.Split(simplifiedData, ";")
 	regOut := ""
 
@@ -226,11 +232,14 @@ func parse(data string) string {
 		regOut += parseLine(strings.TrimSpace(piece))
 	}
 
-	return regOut
+	return regOut, nil
 }
 
 func Parse(data string) (string, error) {
-	regexStr := parse(data)
+	regexStr, parseError := parse(data)
+	if parseError != nil {
+		return "", parseError
+	}
 	_, error := regexp2.Compile(regexStr, regexp2.RE2)
 	return regexStr, error
 }
@@ -318,7 +327,10 @@ func ParseFile(filename string) (string, error) {
 
 	allContents := contents.JoinInOrder()
 
-	regexStr := parse(allContents)
+	regexStr, parseError := parse(allContents)
+	if parseError != nil {
+		return "", parseError
+	}
 	_, error := regexp2.Compile(regexStr, regexp2.RE2)
 	return regexStr, error
 

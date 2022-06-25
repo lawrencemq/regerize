@@ -258,3 +258,16 @@ func TestFileNotFoundError(t *testing.T) {
 	ensureEquals(t, error.Error(), "open test_data/lolz.rgr: no such file or directory")
 	ensureEquals(t, expected, result)
 }
+
+func TestUnknownCommand(t *testing.T) {
+
+	input := `I am the bat{
+		"haha";
+		"wut";
+		};`
+
+	expected := ""
+	result, error := Parse(input)
+	ensureEquals(t, error.Error(), "Unknown command: I am the bat")
+	ensureEquals(t, expected, result)
+}
