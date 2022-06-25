@@ -249,3 +249,12 @@ func TestDoubleImportReturnsError(t *testing.T) {
 	ensureEquals(t, error.Error(), "Double import of file test_data/circular_dep1.rgr")
 	ensureEquals(t, expected, result)
 }
+
+func TestFileNotFoundError(t *testing.T) {
+	startingFile := "test_data/badImport.rgr"
+
+	expected := ""
+	result, error := ParseFile(startingFile)
+	ensureEquals(t, error.Error(), "open test_data/lolz.rgr: no such file or directory")
+	ensureEquals(t, expected, result)
+}

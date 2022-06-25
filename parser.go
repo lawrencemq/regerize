@@ -268,12 +268,12 @@ func (s *stack) JoinInOrder() string {
 	return strings.Join(dst, "\n")
 }
 
-func readInFile(filename string) string {
+func readInFile(filename string) (string, error) {
 	dat, err := os.ReadFile(filename)
 	if err != nil {
-		panic("Unable to read " + filename + ". " + err.Error())
+		return "", err
 	}
-	return string(dat)
+	return string(dat), nil
 }
 
 func findImports(contents string) []string {
@@ -308,7 +308,10 @@ func ParseFile(filename string) (string, error) {
 		}
 
 		setOfFilesRead[toRead] = true
-		fileContents := readInFile(toRead)
+		fileContents, error := readInFile(toRead)
+		if error != nil {
+			return "", error
+		}
 		fileStack.push(findImports(fileContents)...)
 		contents.push(removeImportsFromContents(fileContents))
 	}
