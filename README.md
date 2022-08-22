@@ -94,10 +94,10 @@ go build
 
 ```go
 regex, err := parser.ParseFile(filename)
-	if err != nil {
-		fmt.Println("Unable to parse file: ", err)
-		return
-	}
+if err != nil {
+  fmt.Println("Unable to parse file: ", err)
+  return
+}
 
 ```
 
