@@ -259,6 +259,15 @@ func TestFileNotFoundError(t *testing.T) {
 	ensureEquals(t, expected, result)
 }
 
+// func TestParseErrorInFile(t *testing.T) {
+// 	startingFile := "test_data/incompleteThought.rgr"
+
+// 	expected := ""
+// 	result, error := ParseFile(startingFile)
+// 	ensureEquals(t, error.Error(), "open test_data/lolz.rgr: no such file or directory")
+// 	ensureEquals(t, expected, result)
+// }
+
 func TestUnknownCommand(t *testing.T) {
 
 	input := `I am the bat{
@@ -269,5 +278,13 @@ func TestUnknownCommand(t *testing.T) {
 	expected := ""
 	result, error := Parse(input)
 	ensureEquals(t, error.Error(), "Unknown command: I am the bat")
+	ensureEquals(t, expected, result)
+}
+
+func TestUnknownConstant(t *testing.T) {
+	input := `<wazzzup>;`
+	expected := "<wazzzup>"
+	result, error := Parse(input)
+	ensureErrorNil(t, error)
 	ensureEquals(t, expected, result)
 }
