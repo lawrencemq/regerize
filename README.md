@@ -90,14 +90,14 @@ cd regerize
 go build
 ```
 
-## CLI Usage
+## Usage
 
-```
-USAGE:
-    regerize [INPUT_FILE_PATH]
-
-ARGS:
-    <INPUT_FILE_PATH>    Read from a file
+```go
+regex, err := parser.ParseFile(filename)
+	if err != nil {
+		fmt.Println("Unable to parse file: ", err)
+		return
+	}
 
 ```
 
